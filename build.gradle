@@ -2,7 +2,8 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'application'
-apply plguin: 'maven'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 buildscript {
 	repositories {
@@ -76,7 +77,7 @@ uploadArchives {
 
                     licenses {
                         license {
-                            name = 'MIT License'
+                            name = 'Apache 2 License'
                             url = 'https://github.com/FabricMC/blending-jar/blob/master/LICENSE'
                             distribution = 'repo'
                         }
