@@ -123,6 +123,7 @@ public class ClassMerger {
         nodeOut.access = nodeC.access;
         nodeOut.name = nodeC.name;
         nodeOut.signature = nodeC.signature;
+        nodeOut.interfaces = nodeC.interfaces;
         nodeOut.superName = nodeC.superName;
         nodeOut.sourceFile = nodeC.sourceFile;
         nodeOut.sourceDebug = nodeC.sourceDebug;

@@ -17,6 +17,11 @@ buildscript {
 sourceCompatibility = 1.8
 version = '0.1.1'
 
+def ENV = System.getenv()
+if (ENV.BUILD_NUMBER) {
+    version = version + "." + "${System.getenv().BUILD_NUMBER}"
+}
+
 group = 'net.fabricmc'
 archivesBaseName = project.name.toLowerCase()
 mainClassName = "net.fabricmc.blendingjar.Main"
