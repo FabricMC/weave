@@ -52,7 +52,7 @@ public class Main {
 
             JarMerger merger = new JarMerger(in1fs, in2fs, outfs);
 
-            System.out.println("Will it blend? That is the question!\nStarring " + in1f.getName() + " and " + in2f.getName());
+            System.out.println("Will it blend? That is the question!\n(Starring " + in1f.getName() + " and " + in2f.getName() + ")");
 
             final String theme = "doo doo do do doo DOO! DOO! do do doo doo doo DO! DO! DO! ";
             final int themeL = theme.length();
@@ -79,7 +79,7 @@ public class Main {
             in2fs.close();
             outfs.close();
 
-            System.out.println("They both blend!");
+            System.out.println("\nOof! " + outf.getName() + " smoke! Don't breathe this!\nResult: They both blend!");
         } catch (IOException e) {
             e.printStackTrace();
         }

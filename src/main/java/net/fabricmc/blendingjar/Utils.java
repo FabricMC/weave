@@ -16,7 +16,9 @@
 
 package net.fabricmc.blendingjar;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public final class Utils {
     private Utils() {
@@ -25,5 +27,31 @@ public final class Utils {
 
     public static long getTime() {
         return new Date().getTime();
+    }
+
+    public static List<String> mergePreserveOrder(List<String> first, List<String> second) {
+        List<String> out = new ArrayList<>();
+
+        int i = 0;
+        int j = 0;
+        while (i < first.size() || j < second.size()) {
+            while (i < first.size() && j < second.size()
+                    && first.get(i).equals(second.get(j))) {
+                out.add(first.get(i));
+                i++;
+                j++;
+            }
+
+            while (i < first.size() && !second.contains(first.get(i))) {
+                out.add(first.get(i));
+                i++;
+            }
+
+            while (j < second.size() && !first.contains(second.get(j))) {
+                out.add(second.get(j));
+                j++;
+            }
+        }
+        return out;
     }
 }

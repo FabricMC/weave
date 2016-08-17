@@ -27,24 +27,21 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InnerClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ClassMerger {
     private abstract class Merger<T> {
         private final Map<String, T> entriesClient, entriesServer;
-        private final Set<String> entryNames;
+        private final List<String> entryNames;
 
         public Merger(List<T> entriesClient, List<T> entriesServer) {
             this.entriesClient = toMap(entriesClient);
             this.entriesServer = toMap(entriesServer);
 
-            this.entryNames = new HashSet<>();
-            this.entryNames.addAll(this.entriesClient.keySet());
-            this.entryNames.addAll(this.entriesServer.keySet());
+            List<String> listClient = toList(entriesClient);
+            List<String> listServer = toList(entriesServer);
+
+            this.entryNames = Utils.mergePreserveOrder(listClient, listServer);
         }
 
         public abstract String getName(T entry);
@@ -56,6 +53,14 @@ public class ClassMerger {
                 map.put(getName(entry), entry);
             }
             return map;
+        }
+
+        private final List<String> toList(List<T> entries) {
+            List<String> list = new ArrayList<>();
+            for (T entry : entries) {
+                list.add(getName(entry));
+            }
+            return list;
         }
 
         public void merge(List<T> list) {
@@ -137,8 +142,7 @@ public class ClassMerger {
         nodeOut.visibleTypeAnnotations = nodeC.visibleTypeAnnotations;
         nodeOut.attrs = nodeC.attrs;
 
-        nodeOut.innerClasses = nodeC.innerClasses;
-        /* new Merger<InnerClassNode>(nodeC.innerClasses, nodeS.innerClasses) {
+        new Merger<InnerClassNode>(nodeC.innerClasses, nodeS.innerClasses) {
             @Override
             public String getName(InnerClassNode entry) {
                 return entry.name;
@@ -147,10 +151,9 @@ public class ClassMerger {
             @Override
             public void applySide(InnerClassNode entry, Side side) {
             }
-        }.merge(nodeOut.innerClasses); */
+        }.merge(nodeOut.innerClasses);
 
-        nodeOut.fields = nodeC.fields;
-        /* new Merger<FieldNode>(nodeC.fields, nodeS.fields) {
+        new Merger<FieldNode>(nodeC.fields, nodeS.fields) {
             @Override
             public String getName(FieldNode entry) {
                 return entry.name + "," + entry.desc + "," + entry.signature;
@@ -161,7 +164,7 @@ public class ClassMerger {
                 AnnotationVisitor av = entry.visitAnnotation("Lnet/fabricmc/api/Sided;", true);
                 visitSideAnnotation(av, side);
             }
-        }.merge(nodeOut.fields); */
+        }.merge(nodeOut.fields);
 
         new Merger<MethodNode>(nodeC.methods, nodeS.methods) {
             @Override
