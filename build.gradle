@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'application'
+apply plguin: 'maven'
 
 buildscript {
 	repositories {
@@ -15,6 +16,8 @@ buildscript {
 sourceCompatibility = 1.8
 version = '0.1.0'
 
+group = 'net.fabricmc'
+archivesBaseName = project.name.toLowerCase()
 mainClassName = "net.fabricmc.blendingjar.Main"
 
 repositories {
@@ -38,5 +41,57 @@ jar {
 			it.isDirectory() ? it : zipTree(it)
 		}
 	}
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            if (project.hasProperty('mavenPass')) {
+                repository(url: 'http://mavenupload.modmuss50.me/') {
+                    authentication(userName: 'buildslave', password: project.getProperty('mavenPass'))
+                }
+            } else {
+                repository(url: 'file:///var/www/maven/')
+            }
+
+            pom {
+                artifactId = project.archivesBaseName
+
+                project {
+                    name = project.name
+                    description = project.description
+                    packaging = 'jar'
+                    url = project.url
+
+                    scm {
+                        url = 'https://github.com/FabricMC/blending-jar'
+                        connection = 'scm:git:git@github.com:FabricMC/blending-jar.git'
+                        developerConnection = 'scm:git:git@github.com:FabricMC/blending-jar.git'
+                    }
+
+                    issueManagement {
+                        system = 'GitHub'
+                        url = 'https://github.com/FabricMC/blending-jar/issues'
+                    }
+
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'https://github.com/FabricMC/blending-jar/blob/master/LICENSE'
+                            distribution = 'repo'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = 'asiekierka'
+                            name = 'asiekierka'
+                            roles { role 'developer' }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
