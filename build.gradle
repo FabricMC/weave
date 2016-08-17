@@ -1,0 +1,42 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'application'
+
+buildscript {
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+		jcenter()
+	}
+}
+
+sourceCompatibility = 1.8
+version = '0.1.0'
+
+mainClassName = "net.fabricmc.blendingjar.Main"
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compile 'commons-io:commons-io:2.5'
+	compile 'org.ow2.asm:asm:5.1'
+	compile 'org.ow2.asm:asm-tree:5.1'
+}
+
+jar {
+	manifest {
+		attributes	'Implementation-Title': 'BlendingJar',
+				'Implementation-Version': version,
+				'Main-Class': mainClassName
+	}
+	from {
+		configurations.compile.collect {
+			it.isDirectory() ? it : zipTree(it)
+		}
+	}
+}
+
