@@ -136,7 +136,8 @@ public class ClassMerger {
         nodeOut.visibleTypeAnnotations = nodeC.visibleTypeAnnotations;
         nodeOut.attrs = nodeC.attrs;
 
-        new Merger<InnerClassNode>(nodeC.innerClasses, nodeS.innerClasses) {
+        nodeOut.innerClasses = nodeC.innerClasses;
+        /* new Merger<InnerClassNode>(nodeC.innerClasses, nodeS.innerClasses) {
             @Override
             public String getName(InnerClassNode entry) {
                 return entry.name;
@@ -145,9 +146,10 @@ public class ClassMerger {
             @Override
             public void applySide(InnerClassNode entry, Side side) {
             }
-        }.merge(nodeOut.innerClasses);
+        }.merge(nodeOut.innerClasses); */
 
-        new Merger<FieldNode>(nodeC.fields, nodeS.fields) {
+        nodeOut.fields = nodeC.fields;
+        /* new Merger<FieldNode>(nodeC.fields, nodeS.fields) {
             @Override
             public String getName(FieldNode entry) {
                 return entry.name + "," + entry.desc + "," + entry.signature;
@@ -158,7 +160,7 @@ public class ClassMerger {
                 AnnotationVisitor av = entry.visitAnnotation("Lnet/fabricmc/api/Sided;", true);
                 visitSideAnnotation(av, side);
             }
-        }.merge(nodeOut.fields);
+        }.merge(nodeOut.fields); */
 
         new Merger<MethodNode>(nodeC.methods, nodeS.methods) {
             @Override
