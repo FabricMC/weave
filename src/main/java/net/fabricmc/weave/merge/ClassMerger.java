@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package net.fabricmc.blendingjar;
+package net.fabricmc.weave.merge;
 
-import net.fabricmc.api.Side;
+import net.fabricmc.weave.util.Utils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -45,7 +45,7 @@ public class ClassMerger {
         }
 
         public abstract String getName(T entry);
-        public abstract void applySide(T entry, Side side);
+        public abstract void applySide(T entry, String side);
 
         private final Map<String, T> toMap(List<T> entries) {
             Map<String, T> map = new HashMap<String, T>();
@@ -68,25 +68,25 @@ public class ClassMerger {
                 if (entriesClient.containsKey(s) && entriesServer.containsKey(s)) {
                     list.add(entriesClient.get(s));
                 } else if (entriesClient.containsKey(s)) {
-                    applySide(entriesClient.get(s), Side.CLIENT);
+                    applySide(entriesClient.get(s), "CLIENT");
                     list.add(entriesClient.get(s));
                 } else if (entriesServer.containsKey(s)) {
-                    applySide(entriesServer.get(s), Side.SERVER);
+                    applySide(entriesServer.get(s), "SERVER");
                     list.add(entriesServer.get(s));
                 }
             }
         }
     }
 
-    private void visitSideAnnotation(AnnotationVisitor av, Side side) {
-        av.visitEnum("value", "Lnet/fabricmc/api/Side;", side.name().toUpperCase());
+    private void visitSideAnnotation(AnnotationVisitor av, String side) {
+        av.visitEnum("value", "Lnet/fabricmc/api/Side;", side.toUpperCase());
         av.visitEnd();
     }
 
     private class SidedClassVisitor extends ClassVisitor {
-        private final Side side;
+        private final String side;
 
-        public SidedClassVisitor(int api, ClassVisitor cv, Side side) {
+        public SidedClassVisitor(int api, ClassVisitor cv, String side) {
             super(api, cv);
             this.side = side;
         }
@@ -103,7 +103,7 @@ public class ClassMerger {
 
     }
 
-    public byte[] addSideInformation(byte[] classSided, Side side) {
+    public byte[] addSideInformation(byte[] classSided, String side) {
         ClassReader reader = new ClassReader(classSided);
         ClassWriter writer = new ClassWriter(0);
 
@@ -149,7 +149,7 @@ public class ClassMerger {
             }
 
             @Override
-            public void applySide(InnerClassNode entry, Side side) {
+            public void applySide(InnerClassNode entry, String side) {
             }
         }.merge(nodeOut.innerClasses);
 
@@ -160,7 +160,7 @@ public class ClassMerger {
             }
 
             @Override
-            public void applySide(FieldNode entry, Side side) {
+            public void applySide(FieldNode entry, String side) {
                 AnnotationVisitor av = entry.visitAnnotation("Lnet/fabricmc/api/Sided;", true);
                 visitSideAnnotation(av, side);
             }
@@ -173,7 +173,7 @@ public class ClassMerger {
             }
 
             @Override
-            public void applySide(MethodNode entry, Side side) {
+            public void applySide(MethodNode entry, String side) {
                 AnnotationVisitor av = entry.visitAnnotation("Lnet/fabricmc/api/Sided;", true);
                 visitSideAnnotation(av, side);
             }

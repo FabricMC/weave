@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package net.fabricmc.blendingjar;
+package net.fabricmc.weave.merge;
 
-import net.fabricmc.api.Side;
-import net.fabricmc.api.Sided;
-import org.apache.commons.io.IOUtils;
+import com.google.common.io.ByteStreams;
+import net.fabricmc.weave.util.Utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,7 +74,7 @@ public class JarMerger {
     private void readToMap(Map<String, Entry> map, JarInputStream input) throws IOException {
         JarEntry entry;
         while ((entry = input.getNextJarEntry()) != null) {
-            map.put(entry.getName(), new Entry(entry, IOUtils.toByteArray(input)));
+            map.put(entry.getName(), new Entry(entry, ByteStreams.toByteArray(input)));
         }
 
         entriesAll.addAll(map.keySet());
@@ -95,27 +94,18 @@ public class JarMerger {
         entry.setTime(Utils.getTime());
 
         output.putNextEntry(entry);
-        IOUtils.copy(stream, output);
+        ByteStreams.copy(stream, output);
     }
 
     public void merge() throws IOException {
-        merge(IEntryCallback.Dummy.INSTANCE);
-    }
-
-    public void merge(IEntryCallback callback) throws IOException {
         readToMap(entriesClient, inputClient);
         readToMap(entriesServer, inputServer);
 
-        // Add sidedness API first
-        addClass(output, Side.class);
-        addClass(output, Sided.class);
-
         for (String entry : entriesAll) {
-            callback.onProcessEntry(entry);
             boolean isClass = entry.endsWith("class");
             boolean isMinecraft = entry.startsWith("net/minecraft") || !entry.contains("/");
             Entry result = null;
-            Side side = Side.UNIVERSAL;
+            String side = null;
 
             if (isClass && !isMinecraft) {
                 // Server bundles libraries, client doesn't - skip them
@@ -136,19 +126,19 @@ public class JarMerger {
                     } else {
                         // FIXME: More heuristics?
                         result = entriesClient.get(entry);
-                        result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, Side.CLIENT));
+                        result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, "CLIENT"));
                     }
                 }
             } else if (entriesClient.containsKey(entry)) {
-                side = Side.CLIENT;
+                side = "CLIENT";
                 result = entriesClient.get(entry);
             } else if (entriesServer.containsKey(entry)) {
-                side = Side.SERVER;
+                side = "SERVER";
                 result = entriesServer.get(entry);
             }
 
             if (result != null) {
-                if (isMinecraft && isClass && side != Side.UNIVERSAL) {
+                if (isMinecraft && isClass && side != null) {
                     result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, side));
                 }
 

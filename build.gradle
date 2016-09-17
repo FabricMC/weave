@@ -15,7 +15,7 @@ buildscript {
 }
 
 sourceCompatibility = 1.8
-version = '0.1.1'
+version = '0.2.0'
 
 def ENV = System.getenv()
 if (ENV.BUILD_NUMBER) {
@@ -24,21 +24,35 @@ if (ENV.BUILD_NUMBER) {
 
 group = 'net.fabricmc'
 archivesBaseName = project.name.toLowerCase()
-mainClassName = "net.fabricmc.blendingjar.Main"
+mainClassName = "net.fabricmc.weave.Main"
 
 repositories {
 	mavenCentral()
+	maven {
+		name = 'fabric'
+		url = 'http://maven.fabricmc.net/'
+	}
+	maven {
+		name "RX14 Repository"
+		url 'http://mvn.rx14.co.uk/local/'
+	}
 }
 
 dependencies {
-	compile 'commons-io:commons-io:2.5'
+	compile 'com.google.guava:guava:19.+'
 	compile 'org.ow2.asm:asm:5.1'
+	compile 'org.ow2.asm:asm-commons:5.1'
 	compile 'org.ow2.asm:asm-tree:5.1'
+
+	compile('net.fabricmc:enigma:0.11.0.53:lib') {
+		exclude module: 'procyon-compilertools'
+	}
+	compile 'org.javassist:javassist:3.+'
 }
 
 jar {
 	manifest {
-		attributes	'Implementation-Title': 'BlendingJar',
+		attributes	'Implementation-Title': 'Weave',
 				'Implementation-Version': version,
 				'Main-Class': mainClassName
 	}
