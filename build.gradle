@@ -54,9 +54,23 @@ jar {
 				'Implementation-Version': version,
 				'Main-Class': "net.fabricmc.weave.Main"
 	}
-	from {
+}
+
+task fatJar(type: Jar) {
+    from {
 		configurations.compile.collect {
 			it.isDirectory() ? it : zipTree(it)
 		}
 	}
+	manifest {
+		attributes	'Implementation-Title': 'Weave',
+					'Implementation-Version': version,
+					'Main-Class': "net.fabricmc.weave.Main"
+	}
+	classifier = 'fat'
+	with jar
+}
+
+artifacts {
+   archives fatJar
 }
