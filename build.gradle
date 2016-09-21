@@ -15,7 +15,6 @@ buildscript {
 }
 
 sourceCompatibility = 1.8
-version = '0.2.0'
 
 def ENV = System.getenv()
 if (ENV.BUILD_NUMBER) {
@@ -50,6 +49,9 @@ dependencies {
 	compile 'org.javassist:javassist:3.+'
 }
 
+apply from: 'https://github.com/FabricMC/fabric-docs/raw/master/gradle/maven.gradle'
+apply from: 'https://github.com/FabricMC/fabric-docs/raw/master/gradle/license.gradle'
+
 jar {
 	manifest {
 		attributes	'Implementation-Title': 'Weave',
@@ -62,56 +64,3 @@ jar {
 		}
 	}
 }
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            if (project.hasProperty('mavenPass')) {
-                repository(url: 'http://mavenupload.modmuss50.me/') {
-                    authentication(userName: 'buildslave', password: project.getProperty('mavenPass'))
-                }
-            } else {
-                repository(url: 'file:///var/www/maven/')
-            }
-
-            pom {
-                artifactId = project.archivesBaseName
-
-                project {
-                    name = project.name
-                    description = project.description
-                    packaging = 'jar'
-                    url = project.url
-
-                    scm {
-                        url = 'https://github.com/FabricMC/blending-jar'
-                        connection = 'scm:git:git@github.com:FabricMC/blending-jar.git'
-                        developerConnection = 'scm:git:git@github.com:FabricMC/blending-jar.git'
-                    }
-
-                    issueManagement {
-                        system = 'GitHub'
-                        url = 'https://github.com/FabricMC/blending-jar/issues'
-                    }
-
-                    licenses {
-                        license {
-                            name = 'Apache 2 License'
-                            url = 'https://github.com/FabricMC/blending-jar/blob/master/LICENSE'
-                            distribution = 'repo'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id = 'asiekierka'
-                            name = 'asiekierka'
-                            roles { role 'developer' }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-

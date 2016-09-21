@@ -11,5 +11,5 @@ node {
 
    stage "Archive artifacts"
 
-   archive 'build/libs/*'
+   sh "./gradlew upload"
 }
