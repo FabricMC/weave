@@ -21,6 +21,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.io.Files;
+import cuchaz.enigma.Deobfuscator;
 import cuchaz.enigma.analysis.JarIndex;
 import cuchaz.enigma.analysis.TranslationIndex;
 import cuchaz.enigma.mapping.*;
@@ -34,6 +35,7 @@ import java.util.jar.JarFile;
 
 public class CommandIntermediary extends Command {
     private static final Joiner TAB_JOINER = Joiner.on('\t');
+    private static final boolean ONLY_MAPPED_ENTRIES = true;
     private final Map<Entry, Entry> obfMatches = new HashMap<>();
     private final Map<Entry, String> intermediaryMap = new HashMap<>();
     private final Multiset<String> counters = HashMultiset.create();
@@ -124,21 +126,27 @@ public class CommandIntermediary extends Command {
         return name;
     }
 
-    private void writeClass(JarIndex index, Writer writer, ClassEntry classEntry) throws IOException {
-        write(writer, Utils.serializeEntry(classEntry, false, getName(classEntry)));
-
-        for (FieldEntry entry : index.getObfFieldEntries(classEntry)) {
-            write(writer, Utils.serializeEntry(entry, false, getName(entry)));
+    private void writeClass(JarIndex index, Writer writer, ClassEntry classEntry, Translator translator) throws IOException {
+        if (!ONLY_MAPPED_ENTRIES || translator.translate(classEntry) != null) {
+            write(writer, Utils.serializeEntry(classEntry, false, getName(classEntry)));
         }
 
-        for (BehaviorEntry entry : index.getObfBehaviorEntries(classEntry)) {
-            if (entry instanceof MethodEntry && Utils.isBehaviorProvider(index, classEntry, entry)) {
+        for (FieldEntry entry : index.getObfFieldEntries(classEntry)) {
+            if (!ONLY_MAPPED_ENTRIES || translator.translate(entry) != null) {
                 write(writer, Utils.serializeEntry(entry, false, getName(entry)));
             }
         }
 
+        for (BehaviorEntry entry : index.getObfBehaviorEntries(classEntry)) {
+            if (entry instanceof MethodEntry && Utils.isBehaviorProvider(index, classEntry, entry)) {
+                if (!ONLY_MAPPED_ENTRIES || translator.translate(entry) != null) {
+                    write(writer, Utils.serializeEntry(entry, false, getName(entry)));
+                }
+            }
+        }
+
         for (ClassEntry entry : index.getInnerClasses(classEntry)) {
-            writeClass(index, writer, entry);
+            writeClass(index, writer, entry, translator);
         }
     }
 
@@ -214,7 +222,7 @@ public class CommandIntermediary extends Command {
         System.out.println("Writing intermediary mappings...");
         Writer writer = Files.newWriter(outIntermediary, Charsets.UTF_8);
         for (ClassEntry entry : index.getObfClassEntries()) {
-            writeClass(index, writer, entry);
+            writeClass(index, writer, entry, currentMap.getTranslator(TranslationDirection.Deobfuscating, index.getTranslationIndex()));
         }
         for (String s : counters.elementSet()) {
             write(writer, new String[]{"#COUNTER", s, String.valueOf(counters.count(s))});

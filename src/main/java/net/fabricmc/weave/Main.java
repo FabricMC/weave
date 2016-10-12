@@ -29,7 +29,8 @@ public class Main {
     static {
         addCommand(new CommandMergeMinecraft());
         addCommand(new CommandTinyify());
-        // addCommand(new CommandIntermediary());
+        addCommand(new CommandIntermediary());
+        addCommand(new CommandFindMappingErrors());
     }
 
     public static void error(String message) {
