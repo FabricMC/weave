@@ -38,12 +38,15 @@ public class CommandFindMappingErrors extends Command {
         if (samePackage) {
             return true;
         } else if (entryAcc == Access.Protected) {
-            ClassEntry c = ref.context.getClassEntry();
-            while (c != null) {
-                if (c.equals(ref.entry.getClassEntry())) {
-                    return true;
+            // TODO: Is this valid?
+            for (ClassEntry ctx : ref.context.getClassEntry().getClassChain()) {
+                ClassEntry c = ctx;
+                while (c != null) {
+                    if (c.equals(ref.entry.getClassEntry())) {
+                        return true;
+                    }
+                    c = deobfuscator.getJarIndex().getTranslationIndex().getSuperclass(c);
                 }
-                c = deobfuscator.getJarIndex().getTranslationIndex().getSuperclass(c);
             }
         }
 
