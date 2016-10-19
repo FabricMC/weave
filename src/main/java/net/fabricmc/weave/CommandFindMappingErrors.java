@@ -50,7 +50,9 @@ public class CommandFindMappingErrors extends Command {
 
     private boolean isRefValid(Access entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
         EntryReference refDeobf = deobfuscator.deobfuscateReference(ref);
-        boolean samePackage = refDeobf.context.getClassEntry().getPackageName().equals(refDeobf.entry.getClassEntry().getPackageName());
+        String packageCtx = refDeobf.context.getClassEntry().getPackageName();
+        String packageEntry = refDeobf.entry.getClassEntry().getPackageName();
+        boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
         if (samePackage) {
             return true;
         } else if (entryAcc == Access.Protected) {
