@@ -55,7 +55,7 @@ public class CommandFindMappingErrors extends Command {
         boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
         if (samePackage) {
             return true;
-        } else if (entryAcc == Access.Protected) {
+        } else if (entryAcc == Access.PROTECTED) {
             // TODO: Is this valid?
             for (ClassEntry ctx : ref.context.getClassEntry().getClassChain()) {
                 ClassEntry c = ctx;
@@ -87,7 +87,7 @@ public class CommandFindMappingErrors extends Command {
 
         for (FieldEntry entry : idx.getObfFieldEntries()) {
             Access entryAcc = idx.getAccess(entry);
-            if (entryAcc != Access.Public && entryAcc != Access.Private) {
+            if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
                 for (EntryReference<FieldEntry, BehaviorEntry> ref : idx.getFieldReferences(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
@@ -101,7 +101,7 @@ public class CommandFindMappingErrors extends Command {
 
         for (BehaviorEntry entry : idx.getObfBehaviorEntries()) {
             Access entryAcc = idx.getAccess(entry);
-            if (entryAcc != Access.Public && entryAcc != Access.Private) {
+            if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
                 for (EntryReference<BehaviorEntry, BehaviorEntry> ref : idx.getBehaviorReferences(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
