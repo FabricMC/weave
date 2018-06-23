@@ -19,11 +19,13 @@ package net.fabricmc.weave;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import cuchaz.enigma.analysis.JarIndex;
+import cuchaz.enigma.analysis.ParsedJar;
 import cuchaz.enigma.mapping.ClassMapping;
 import cuchaz.enigma.mapping.FieldMapping;
 import cuchaz.enigma.mapping.Mappings;
 import cuchaz.enigma.mapping.MappingsEnigmaReader;
 import cuchaz.enigma.mapping.MethodMapping;
+import cuchaz.enigma.mapping.entry.ReferencedEntryPool;
 import net.fabricmc.weave.util.Utils;
 
 import java.io.File;
@@ -65,7 +67,7 @@ public class CommandTinyify extends Command {
         for (MethodMapping methodMapping : mapping.methods()) {
             if (methodMapping.getDeobfName() != null
                     && !methodMapping.getObfName().equals(methodMapping.getDeobfName())
-                    && Utils.isBehaviorProvider(index, mapping.getObfEntry(), methodMapping.getObfEntry(mapping.getObfEntry()))) {
+                    && Utils.isMethodProvider(index, mapping.getObfEntry(), methodMapping.getObfEntry(mapping.getObfEntry()))) {
                 String[] data = Utils.serializeEntry(methodMapping.getObfEntry(mapping.getObfEntry()), true, methodMapping.getDeobfName());
                 write(writer, data);
             }
@@ -103,8 +105,8 @@ public class CommandTinyify extends Command {
         }
 
         System.out.println("Reading JAR file...");
-        index = new JarIndex();
-        index.indexJar(new JarFile(injf), true);
+        index = new JarIndex(new ReferencedEntryPool());
+        index.indexJar(new ParsedJar(new JarFile(injf)), true);
 
         System.out.println("Reading Enigma mappings...");
         Mappings mappings = (new MappingsEnigmaReader()).read(inf);

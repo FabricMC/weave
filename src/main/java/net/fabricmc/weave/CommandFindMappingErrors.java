@@ -20,10 +20,18 @@ import cuchaz.enigma.Deobfuscator;
 import cuchaz.enigma.analysis.Access;
 import cuchaz.enigma.analysis.EntryReference;
 import cuchaz.enigma.analysis.JarIndex;
-import cuchaz.enigma.mapping.*;
+import cuchaz.enigma.mapping.Mappings;
+import cuchaz.enigma.mapping.MappingsEnigmaReader;
+import cuchaz.enigma.mapping.entry.ClassEntry;
+import cuchaz.enigma.mapping.entry.FieldEntry;
+import cuchaz.enigma.mapping.entry.MethodDefEntry;
+import cuchaz.enigma.mapping.entry.MethodEntry;
 
 import java.io.File;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.jar.JarFile;
 
 public class CommandFindMappingErrors extends Command {
@@ -50,17 +58,17 @@ public class CommandFindMappingErrors extends Command {
 
     private boolean isRefValid(Access entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
         EntryReference refDeobf = deobfuscator.deobfuscateReference(ref);
-        String packageCtx = refDeobf.context.getClassEntry().getPackageName();
-        String packageEntry = refDeobf.entry.getClassEntry().getPackageName();
+        String packageCtx = refDeobf.context.getOwnerClassEntry().getPackageName();
+        String packageEntry = refDeobf.entry.getOwnerClassEntry().getPackageName();
         boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
         if (samePackage) {
             return true;
         } else if (entryAcc == Access.PROTECTED) {
             // TODO: Is this valid?
-            for (ClassEntry ctx : ref.context.getClassEntry().getClassChain()) {
+            for (ClassEntry ctx : ref.context.getOwnerClassEntry().getClassChain()) {
                 ClassEntry c = ctx;
                 while (c != null) {
-                    if (c.equals(ref.entry.getClassEntry())) {
+                    if (c.equals(ref.entry.getOwnerClassEntry())) {
                         return true;
                     }
                     c = deobfuscator.getJarIndex().getTranslationIndex().getSuperclass(c);
@@ -88,26 +96,26 @@ public class CommandFindMappingErrors extends Command {
         for (FieldEntry entry : idx.getObfFieldEntries()) {
             Access entryAcc = idx.getAccess(entry);
             if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
-                for (EntryReference<FieldEntry, BehaviorEntry> ref : idx.getFieldReferences(entry)) {
+                for (EntryReference<FieldEntry, MethodDefEntry> ref : idx.getFieldReferences(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
                     if (!valid) {
-                        EntryReference<FieldEntry, BehaviorEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
-                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getClassEntry() + " and " + refDeobf.entry.getClassEntry(), "field " + refDeobf.entry.getName());
+                        EntryReference<FieldEntry, MethodDefEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
+                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getOwnerClassEntry() + " and " + refDeobf.entry.getOwnerClassEntry(), "field " + refDeobf.entry.getName());
                     }
                 }
             }
         }
 
-        for (BehaviorEntry entry : idx.getObfBehaviorEntries()) {
+        for (MethodEntry entry : idx.getObfBehaviorEntries()) {
             Access entryAcc = idx.getAccess(entry);
             if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
-                for (EntryReference<BehaviorEntry, BehaviorEntry> ref : idx.getBehaviorReferences(entry)) {
+                for (EntryReference<MethodEntry, MethodDefEntry> ref : idx.getMethodReferences(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
                     if (!valid) {
-                        EntryReference<BehaviorEntry, BehaviorEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
-                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getClassEntry() + " and " + refDeobf.entry.getClassEntry(), "method " + refDeobf.entry.getName());
+                        EntryReference<MethodEntry, MethodDefEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
+                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getOwnerClassEntry() + " and " + refDeobf.entry.getOwnerClassEntry(), "method " + refDeobf.entry.getName());
                     }
                 }
             }

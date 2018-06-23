@@ -21,15 +21,18 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.io.Files;
-import cuchaz.enigma.Deobfuscator;
 import cuchaz.enigma.analysis.JarIndex;
+import cuchaz.enigma.analysis.ParsedJar;
 import cuchaz.enigma.analysis.TranslationIndex;
 import cuchaz.enigma.mapping.*;
+import cuchaz.enigma.mapping.entry.*;
 import net.fabricmc.weave.util.Utils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.jar.JarFile;
 
@@ -58,25 +61,25 @@ public class CommandIntermediary extends Command {
         writer.write(TAB_JOINER.join(data) + "\n");
     }
 
-    private final Map<Type, Type> adaptedTypes = new HashMap<>();
-    private final Map<Signature, Signature> adaptedSignatures = new HashMap<>();
+    private final Map<TypeDescriptor, TypeDescriptor> adaptedTypes = new HashMap<>();
+    private final Map<MethodDescriptor, MethodDescriptor> adaptedMethodDescriptors = new HashMap<>();
 
-    private Type adaptType(Mappings oldMap, Mappings newMap, Type oldObfType) {
-        Type newObfType = adaptedTypes.get(oldObfType);
+    private TypeDescriptor adaptType(Mappings oldMap, Mappings newMap, TypeDescriptor oldObfType) {
+        TypeDescriptor newObfType = adaptedTypes.get(oldObfType);
         if (newObfType == null) {
-            Type oldDeobfType = oldMap.getTranslator(TranslationDirection.Deobfuscating, new TranslationIndex()).translateType(oldObfType);
-            newObfType = newMap.getTranslator(TranslationDirection.Obfuscating, new TranslationIndex()).translateType(oldDeobfType);
+            TypeDescriptor oldDeobfType = oldMap.getTranslator(TranslationDirection.DEOBFUSCATING, new TranslationIndex(new ReferencedEntryPool())).getTranslatedTypeDesc(oldObfType);
+            newObfType = newMap.getTranslator(TranslationDirection.OBFUSCATING, new TranslationIndex(new ReferencedEntryPool())).getTranslatedTypeDesc(oldDeobfType);
             adaptedTypes.put(oldObfType, newObfType);
         }
         return newObfType;
     }
 
-    private Signature adaptSignature(Mappings oldMap, Mappings newMap, Signature oldObfType) {
-        Signature newObfType = adaptedSignatures.get(oldObfType);
+    private MethodDescriptor adaptMethodDescriptor(Mappings oldMap, Mappings newMap, MethodDescriptor oldObfType) {
+        MethodDescriptor newObfType = adaptedMethodDescriptors.get(oldObfType);
         if (newObfType == null) {
-            Signature oldDeobfType = oldMap.getTranslator(TranslationDirection.Deobfuscating, new TranslationIndex()).translateSignature(oldObfType);
-            newObfType = newMap.getTranslator(TranslationDirection.Obfuscating, new TranslationIndex()).translateSignature(oldDeobfType);
-            adaptedSignatures.put(oldObfType, newObfType);
+            MethodDescriptor oldDeobfType = oldMap.getTranslator(TranslationDirection.DEOBFUSCATING, new TranslationIndex(new ReferencedEntryPool())).getTranslatedMethodDesc(oldObfType);
+            newObfType = newMap.getTranslator(TranslationDirection.OBFUSCATING, new TranslationIndex(new ReferencedEntryPool())).getTranslatedMethodDesc(oldDeobfType);
+            adaptedMethodDescriptors.put(oldObfType, newObfType);
         }
         return newObfType;
     }
@@ -92,7 +95,7 @@ public class CommandIntermediary extends Command {
             for (FieldMapping f : oldObfClass.fields()) {
                 if (f.getDeobfName() == null) continue;
 
-                Type newObfType = adaptType(oldMap, newMap, f.getObfType());
+                TypeDescriptor newObfType = adaptType(oldMap, newMap, f.getObfDesc());
                 if (newMap.containsDeobfField(newObfClass.getObfEntry(), f.getDeobfName(), newObfType)) {
                     System.out.println("Found field match: " + newObfClass.getDeobfName() + "." + f.getDeobfName());
                     obfMatches.put(f.getObfEntry(oldObfClass.getObfEntry()), newObfClass.getFieldByDeobf(f.getDeobfName(), newObfType).getObfEntry(newObfClass.getObfEntry()));
@@ -102,10 +105,10 @@ public class CommandIntermediary extends Command {
             for (MethodMapping m : oldObfClass.methods()) {
                 if (m.getDeobfName() == null) continue;
 
-                Signature newObfSignature = adaptSignature(oldMap, newMap, m.getObfSignature());
-                if (newMap.containsDeobfMethod(newObfClass.getObfEntry(), m.getDeobfName(), newObfSignature)) {
+                MethodDescriptor newObfMethodDescriptor = adaptMethodDescriptor(oldMap, newMap, m.getObfDesc());
+                if (newMap.containsDeobfMethod(newObfClass.getObfEntry(), m.getDeobfName(), newObfMethodDescriptor)) {
                     System.out.println("Found method match: " + newObfClass.getDeobfName() + "." + m.getDeobfName());
-                    obfMatches.put(m.getObfEntry(oldObfClass.getObfEntry()), newObfClass.getMethodByDeobf(m.getDeobfName(), newObfSignature).getObfEntry(newObfClass.getObfEntry()));
+                    obfMatches.put(m.getObfEntry(oldObfClass.getObfEntry()), newObfClass.getMethodByDeobf(m.getDeobfName(), newObfMethodDescriptor).getObfEntry(newObfClass.getObfEntry()));
                 }
             }
 
@@ -118,7 +121,7 @@ public class CommandIntermediary extends Command {
     private String getName(Entry entry) {
         String name = intermediaryMap.get(entry);
         if (name == null) {
-            String type = (entry instanceof ClassEntry ? "class" : (entry instanceof FieldEntry ? "field" : (entry instanceof BehaviorEntry ? "method" : "other")));
+            String type = (entry instanceof ClassEntry ? "class" : (entry instanceof FieldEntry ? "field" : (entry instanceof MethodEntry ? "method" : "other")));
             counters.add(type, 1);
             name = type + "_" + counters.count(type);
             intermediaryMap.put(entry, name);
@@ -127,19 +130,19 @@ public class CommandIntermediary extends Command {
     }
 
     private void writeClass(JarIndex index, Writer writer, ClassEntry classEntry, Translator translator) throws IOException {
-        if (!ONLY_MAPPED_ENTRIES || translator.translate(classEntry) != null) {
+        if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedClass(classEntry) != null) {
             write(writer, Utils.serializeEntry(classEntry, false, getName(classEntry)));
         }
 
-        for (FieldEntry entry : index.getObfFieldEntries(classEntry)) {
-            if (!ONLY_MAPPED_ENTRIES || translator.translate(entry) != null) {
+        for (FieldDefEntry entry : index.getObfFieldEntries(classEntry)) {
+            if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedFieldDef(entry) != null) {
                 write(writer, Utils.serializeEntry(entry, false, getName(entry)));
             }
         }
 
-        for (BehaviorEntry entry : index.getObfBehaviorEntries(classEntry)) {
-            if (entry instanceof MethodEntry && Utils.isBehaviorProvider(index, classEntry, entry)) {
-                if (!ONLY_MAPPED_ENTRIES || translator.translate(entry) != null) {
+        for (MethodDefEntry entry : index.getObfBehaviorEntries(classEntry)) {
+            if (Utils.isMethodProvider(index, classEntry, entry)) {
+                if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedMethodDef(entry) != null) {
                     write(writer, Utils.serializeEntry(entry, false, getName(entry)));
                 }
             }
@@ -186,8 +189,8 @@ public class CommandIntermediary extends Command {
         Mappings currentMap = (new MappingsEnigmaReader()).read(currentMapFile);
 
         System.out.println("Reading current JAR file...");
-        JarIndex index = new JarIndex();
-        index.indexJar(new JarFile(currentJarFile), true);
+        JarIndex index = new JarIndex(new ReferencedEntryPool());
+        index.indexJar(new ParsedJar(new JarFile(currentJarFile)), true);
 
         if (oldMapFile != null) {
             System.out.println("Reading old mappings...");
@@ -222,7 +225,7 @@ public class CommandIntermediary extends Command {
         System.out.println("Writing intermediary mappings...");
         Writer writer = Files.newWriter(outIntermediary, Charsets.UTF_8);
         for (ClassEntry entry : index.getObfClassEntries()) {
-            writeClass(index, writer, entry, currentMap.getTranslator(TranslationDirection.Deobfuscating, index.getTranslationIndex()));
+            writeClass(index, writer, entry, currentMap.getTranslator(TranslationDirection.DEOBFUSCATING, index.getTranslationIndex()));
         }
         for (String s : counters.elementSet()) {
             write(writer, new String[]{"#COUNTER", s, String.valueOf(counters.count(s))});
