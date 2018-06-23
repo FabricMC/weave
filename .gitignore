@@ -13,7 +13,7 @@
 !/gradlew
 !/gradlew.bat
 !/HEADER
-!/Jenkinsfile
+!/BuildFile
 !/LICENSE
 !/README.md
 !/settings.gradle
