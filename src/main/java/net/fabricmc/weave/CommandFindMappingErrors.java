@@ -110,7 +110,7 @@ public class CommandFindMappingErrors extends Command {
         for (MethodEntry entry : idx.getObfBehaviorEntries()) {
             Access entryAcc = idx.getAccess(entry);
             if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
-                for (EntryReference<MethodEntry, MethodDefEntry> ref : idx.getMethodReferences(entry)) {
+                for (EntryReference<MethodEntry, MethodDefEntry> ref : idx.getMethodsReferencing(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
                     if (!valid) {
