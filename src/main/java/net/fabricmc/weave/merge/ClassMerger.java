@@ -156,7 +156,7 @@ public class ClassMerger {
         new Merger<FieldNode>(nodeC.fields, nodeS.fields) {
             @Override
             public String getName(FieldNode entry) {
-                return entry.name + "," + entry.desc + "," + entry.signature;
+                return entry.name + "," + entry.desc/* + "," + entry.signature*/;//TODO this may need further processing in case signatures differ (e.g. Block.r)
             }
 
             @Override
@@ -169,7 +169,7 @@ public class ClassMerger {
         new Merger<MethodNode>(nodeC.methods, nodeS.methods) {
             @Override
             public String getName(MethodNode entry) {
-                return entry.name + "," + entry.desc + "," + entry.signature;
+                return entry.name + "," + entry.desc/* + "," + entry.signature*/;//TODO this may need further processing in case signatures differ
             }
 
             @Override
