@@ -39,13 +39,14 @@ repositories {
 }
 
 dependencies {
-	compile 'com.google.guava:guava:19.+'
-	compile 'org.ow2.asm:asm:5.1'
-	compile 'org.ow2.asm:asm-commons:5.1'
-	compile 'org.ow2.asm:asm-tree:5.1'
+	compile 'com.google.guava:guava:23.+'
+	compile 'org.ow2.asm:asm:6.2.1'
+	compile 'org.ow2.asm:asm-analysis:6.2.1'
+	compile 'org.ow2.asm:asm-commons:6.2.1'
+	compile 'org.ow2.asm:asm-tree:6.2.1'
+	compile 'org.ow2.asm:asm-util:6.2.1'
 
 	compile 'enigma-asm:enigma:0.12.0.+:lib'
-	//compile 'org.javassist:javassist:3.+'
 }
 
 publishing {

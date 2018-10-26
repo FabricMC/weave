@@ -18,9 +18,10 @@ package net.fabricmc.weave;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class Main {
-    private static final Map<String, Command> COMMAND_MAP = new HashMap<>();
+    private static final Map<String, Command> COMMAND_MAP = new TreeMap<>();
 
     private static void addCommand(Command command) {
         COMMAND_MAP.put(command.name.toLowerCase(), command);
@@ -47,6 +48,7 @@ public class Main {
                 System.out.println("\t" + command.name + " " + command.getHelpString());
             }
             System.out.println();
+            return;
         }
 
         try {

@@ -23,11 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.attribute.FileTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
@@ -56,9 +52,9 @@ public class JarMerger {
         this.inputServer = inputServer;
         this.output = output;
 
-        this.entriesClient = new HashMap<>();
-        this.entriesServer = new HashMap<>();
-        this.entriesAll = new HashSet<>();
+        this.entriesClient = new TreeMap<>();
+        this.entriesServer = new TreeMap<>();
+        this.entriesAll = new TreeSet<>();
     }
 
     public JarMerger(InputStream inputClient, InputStream inputServer, OutputStream output) throws IOException {
@@ -104,7 +100,7 @@ public class JarMerger {
         for (String entry : entriesAll) {
             boolean isClass = entry.endsWith("class");
             boolean isMinecraft = entry.startsWith("net/minecraft") || !entry.contains("/");
-            Entry result = null;
+            Entry result;
             String side = null;
 
             if (isClass && !isMinecraft) {
@@ -112,11 +108,12 @@ public class JarMerger {
                 continue;
             }
 
-            if (entriesClient.containsKey(entry) && entriesServer.containsKey(entry)) {
-                Entry entry1 = entriesClient.get(entry);
-                Entry entry2 = entriesServer.get(entry);
+            Entry entry1 = entriesClient.get(entry);
+            Entry entry2 = entriesServer.get(entry);
+
+            if (entry1 != null && entry2 != null) {
                 if (Arrays.equals(entry1.data, entry2.data)) {
-                    result = entriesClient.get(entry);
+                    result = entry1;
                 } else {
                     if (isClass) {
                         JarEntry metadata = new JarEntry(entry1.metadata);
@@ -125,16 +122,14 @@ public class JarMerger {
                         result = new Entry(metadata, CLASS_MERGER.merge(entry1.data, entry2.data));
                     } else {
                         // FIXME: More heuristics?
-                        result = entriesClient.get(entry);
+                        result = entry1;
                         result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, "CLIENT"));
                     }
                 }
-            } else if (entriesClient.containsKey(entry)) {
+            } else if ((result = entry1) != null) {
                 side = "CLIENT";
-                result = entriesClient.get(entry);
-            } else if (entriesServer.containsKey(entry)) {
+            } else if ((result = entry2) != null) {
                 side = "SERVER";
-                result = entriesServer.get(entry);
             }
 
             if (result != null) {

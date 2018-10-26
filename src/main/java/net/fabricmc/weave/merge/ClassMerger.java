@@ -48,7 +48,7 @@ public class ClassMerger {
         public abstract void applySide(T entry, String side);
 
         private final Map<String, T> toMap(List<T> entries) {
-            Map<String, T> map = new HashMap<String, T>();
+            Map<String, T> map = new LinkedHashMap<>();
             for (T entry : entries) {
                 map.put(getName(entry), entry);
             }
@@ -56,7 +56,7 @@ public class ClassMerger {
         }
 
         private final List<String> toList(List<T> entries) {
-            List<String> list = new ArrayList<>();
+            List<String> list = new ArrayList<>(entries.size());
             for (T entry : entries) {
                 list.add(getName(entry));
             }
