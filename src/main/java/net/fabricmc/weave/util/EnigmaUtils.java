@@ -16,20 +16,18 @@
 
 package net.fabricmc.weave.util;
 
+import cuchaz.enigma.analysis.Access;
 import cuchaz.enigma.analysis.JarIndex;
 import cuchaz.enigma.mapping.MethodDescriptor;
 import cuchaz.enigma.mapping.TypeDescriptor;
-import cuchaz.enigma.mapping.entry.ClassEntry;
-import cuchaz.enigma.mapping.entry.Entry;
-import cuchaz.enigma.mapping.entry.FieldEntry;
-import cuchaz.enigma.mapping.entry.MethodEntry;
+import cuchaz.enigma.mapping.entry.*;
 
+import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 
 public class EnigmaUtils {
     private static void addAllPotentialAncestors(JarIndex jarIndex, Set<ClassEntry> classEntries, ClassEntry classObfEntry) {
-
         for (ClassEntry interfaceEntry : jarIndex.getTranslationIndex().getInterfaces(classObfEntry)) {
             if (classEntries.add(interfaceEntry)) {
                 addAllPotentialAncestors(jarIndex, classEntries, interfaceEntry);
@@ -44,6 +42,15 @@ public class EnigmaUtils {
     }
 
     public static boolean isMethodProvider(JarIndex jarIndex, ClassEntry classObfEntry, MethodEntry methodEntry) {
+        // TODO: Add method in Enigma to make this faster
+        for (MethodDefEntry entry : jarIndex.getObfBehaviorEntries(classObfEntry)) {
+            if (entry.equals(methodEntry)) {
+                if (entry.getAccess().isPrivate() || entry.getAccess().isStatic()) {
+                    return true;
+                }
+            }
+        }
+
         Set<ClassEntry> classEntries = new HashSet<>();
         addAllPotentialAncestors(jarIndex, classEntries, classObfEntry);
 
