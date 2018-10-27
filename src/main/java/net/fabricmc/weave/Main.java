@@ -16,6 +16,8 @@
 
 package net.fabricmc.weave;
 
+import net.fabricmc.weave.util.EnigmaUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -23,15 +25,22 @@ import java.util.TreeMap;
 public class Main {
     private static final Map<String, Command> COMMAND_MAP = new TreeMap<>();
 
-    private static void addCommand(Command command) {
+    public static void addCommand(Command command) {
         COMMAND_MAP.put(command.name.toLowerCase(), command);
     }
 
     static {
         addCommand(new CommandMergeMinecraft());
-        addCommand(new CommandTinyify());
-        addCommand(new CommandIntermediary());
-        addCommand(new CommandFindMappingErrors());
+        boolean ENIGMA_PRESENT = true;
+        try {
+            Class.forName("cuchaz.enigma.mapping.entry.Entry");
+        } catch (ClassNotFoundException e) {
+            ENIGMA_PRESENT = false;
+        }
+
+        if (ENIGMA_PRESENT) {
+            EnigmaUtils.addEnigmaCommands();
+        }
     }
 
     public static void error(String message) {

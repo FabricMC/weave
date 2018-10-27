@@ -21,6 +21,10 @@ import cuchaz.enigma.analysis.JarIndex;
 import cuchaz.enigma.mapping.MethodDescriptor;
 import cuchaz.enigma.mapping.TypeDescriptor;
 import cuchaz.enigma.mapping.entry.*;
+import net.fabricmc.weave.CommandFindMappingErrors;
+import net.fabricmc.weave.CommandIntermediary;
+import net.fabricmc.weave.CommandTinyify;
+import net.fabricmc.weave.Main;
 
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
@@ -118,5 +122,11 @@ public class EnigmaUtils {
         }
 
         return null;
+    }
+
+    public static void addEnigmaCommands() {
+        Main.addCommand(new CommandTinyify());
+        Main.addCommand(new CommandIntermediary());
+        Main.addCommand(new CommandFindMappingErrors());
     }
 }

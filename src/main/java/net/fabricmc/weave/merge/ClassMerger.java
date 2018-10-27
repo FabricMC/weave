@@ -107,7 +107,7 @@ public class ClassMerger {
         ClassReader reader = new ClassReader(classSided);
         ClassWriter writer = new ClassWriter(0);
 
-        reader.accept(new SidedClassVisitor(Opcodes.ASM5, writer, side), 0);
+        reader.accept(new SidedClassVisitor(Opcodes.ASM6, writer, side), 0);
 
         return writer.toByteArray();
     }
@@ -117,13 +117,13 @@ public class ClassMerger {
         ClassReader readerS = new ClassReader(classServer);
         ClassWriter writer = new ClassWriter(0);
 
-        ClassNode nodeC = new ClassNode(Opcodes.ASM5);
+        ClassNode nodeC = new ClassNode(Opcodes.ASM6);
         readerC.accept(nodeC, 0);
 
-        ClassNode nodeS = new ClassNode(Opcodes.ASM5);
+        ClassNode nodeS = new ClassNode(Opcodes.ASM6);
         readerS.accept(nodeS, 0);
 
-        ClassNode nodeOut = new ClassNode(Opcodes.ASM5);
+        ClassNode nodeOut = new ClassNode(Opcodes.ASM6);
         nodeOut.version = nodeC.version;
         nodeOut.access = nodeC.access;
         nodeOut.name = nodeC.name;
@@ -135,6 +135,7 @@ public class ClassMerger {
         nodeOut.outerClass = nodeC.outerClass;
         nodeOut.outerMethod = nodeC.outerMethod;
         nodeOut.outerMethodDesc = nodeC.outerMethodDesc;
+        nodeOut.module = nodeC.module;
 
         nodeOut.invisibleAnnotations = nodeC.invisibleAnnotations;
         nodeOut.invisibleTypeAnnotations = nodeC.invisibleTypeAnnotations;
