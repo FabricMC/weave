@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 
 public class JarMerger {
     public class Entry {
@@ -52,8 +53,8 @@ public class JarMerger {
         this.inputServer = inputServer;
         this.output = output;
 
-        this.entriesClient = new TreeMap<>();
-        this.entriesServer = new TreeMap<>();
+        this.entriesClient = new HashMap<>();
+        this.entriesServer = new HashMap<>();
         this.entriesAll = new TreeSet<>();
     }
 
@@ -81,31 +82,19 @@ public class JarMerger {
         output.write(entry.data);
     }
 
-    private void addClass(JarOutputStream output, Class c) throws IOException {
-        String className = c.getName();
-        String classPath = className.replace('.', '/') + ".class";
-        InputStream stream = c.getClassLoader().getResourceAsStream(classPath);
-
-        JarEntry entry = new JarEntry(classPath);
-        entry.setTime(Utils.getTime());
-
-        output.putNextEntry(entry);
-        ByteStreams.copy(stream, output);
-    }
-
     public void merge() throws IOException {
         readToMap(entriesClient, inputClient);
         readToMap(entriesServer, inputServer);
 
-        for (String entry : entriesAll) {
-            boolean isClass = entry.endsWith("class");
+        List<Entry> entries = entriesAll.parallelStream().map((entry) -> {
+            boolean isClass = entry.endsWith(".class");
             boolean isMinecraft = entry.startsWith("net/minecraft") || !entry.contains("/");
             Entry result;
             String side = null;
 
             if (isClass && !isMinecraft) {
                 // Server bundles libraries, client doesn't - skip them
-                continue;
+                return null;
             }
 
             Entry entry1 = entriesClient.get(entry);
@@ -123,7 +112,6 @@ public class JarMerger {
                     } else {
                         // FIXME: More heuristics?
                         result = entry1;
-                        result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, "CLIENT"));
                     }
                 }
             } else if ((result = entry1) != null) {
@@ -137,8 +125,14 @@ public class JarMerger {
                     result = new Entry(result.metadata, CLASS_MERGER.addSideInformation(result.data, side));
                 }
 
-                add(output, result);
+                return result;
+            } else {
+                return null;
             }
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+
+        for (Entry e : entries) {
+            add(output, e);
         }
-    }
+;    }
 }
