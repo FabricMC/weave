@@ -26,6 +26,7 @@ import cuchaz.enigma.mapping.Mappings;
 import cuchaz.enigma.mapping.MappingsEnigmaReader;
 import cuchaz.enigma.mapping.MethodMapping;
 import cuchaz.enigma.mapping.entry.ReferencedEntryPool;
+import net.fabricmc.weave.util.EnigmaUtils;
 import net.fabricmc.weave.util.Utils;
 
 import java.io.File;
@@ -59,7 +60,7 @@ public class CommandTinyify extends Command {
         for (FieldMapping fieldMapping : mapping.fields()) {
             if (fieldMapping.getDeobfName() != null
                     && !fieldMapping.getObfName().equals(fieldMapping.getDeobfName())) {
-                String[] data = Utils.serializeEntry(fieldMapping.getObfEntry(mapping.getObfEntry()), true, fieldMapping.getDeobfName());
+                String[] data = EnigmaUtils.serializeEntry(fieldMapping.getObfEntry(mapping.getObfEntry()), true, fieldMapping.getDeobfName());
                 write(writer, data);
             }
         }
@@ -67,8 +68,8 @@ public class CommandTinyify extends Command {
         for (MethodMapping methodMapping : mapping.methods()) {
             if (methodMapping.getDeobfName() != null
                     && !methodMapping.getObfName().equals(methodMapping.getDeobfName())
-                    && Utils.isMethodProvider(index, mapping.getObfEntry(), methodMapping.getObfEntry(mapping.getObfEntry()))) {
-                String[] data = Utils.serializeEntry(methodMapping.getObfEntry(mapping.getObfEntry()), true, methodMapping.getDeobfName());
+                    && EnigmaUtils.isMethodProvider(index, mapping.getObfEntry(), methodMapping.getObfEntry(mapping.getObfEntry()))) {
+                String[] data = EnigmaUtils.serializeEntry(methodMapping.getObfEntry(mapping.getObfEntry()), true, methodMapping.getDeobfName());
                 write(writer, data);
             }
         }

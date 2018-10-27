@@ -26,6 +26,7 @@ import cuchaz.enigma.analysis.ParsedJar;
 import cuchaz.enigma.analysis.TranslationIndex;
 import cuchaz.enigma.mapping.*;
 import cuchaz.enigma.mapping.entry.*;
+import net.fabricmc.weave.util.EnigmaUtils;
 import net.fabricmc.weave.util.Utils;
 
 import java.io.File;
@@ -131,19 +132,19 @@ public class CommandIntermediary extends Command {
 
     private void writeClass(JarIndex index, Writer writer, ClassEntry classEntry, Translator translator) throws IOException {
         if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedClass(classEntry) != null) {
-            write(writer, Utils.serializeEntry(classEntry, false, getName(classEntry)));
+            write(writer, EnigmaUtils.serializeEntry(classEntry, false, getName(classEntry)));
         }
 
         for (FieldDefEntry entry : index.getObfFieldEntries(classEntry)) {
             if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedFieldDef(entry) != null) {
-                write(writer, Utils.serializeEntry(entry, false, getName(entry)));
+                write(writer, EnigmaUtils.serializeEntry(entry, false, getName(entry)));
             }
         }
 
         for (MethodDefEntry entry : index.getObfBehaviorEntries(classEntry)) {
-            if (Utils.isMethodProvider(index, classEntry, entry)) {
+            if (EnigmaUtils.isMethodProvider(index, classEntry, entry)) {
                 if (!ONLY_MAPPED_ENTRIES || translator.getTranslatedMethodDef(entry) != null) {
-                    write(writer, Utils.serializeEntry(entry, false, getName(entry)));
+                    write(writer, EnigmaUtils.serializeEntry(entry, false, getName(entry)));
                 }
             }
         }
