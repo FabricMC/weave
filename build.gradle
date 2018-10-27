@@ -19,7 +19,7 @@ if (ENV.BUILD_NUMBER) {
     version = version + "." + "${System.getenv().BUILD_NUMBER}"
 }
 
-group = 'weave-asm'
+group = 'net.fabricmc'
 archivesBaseName = project.name.toLowerCase()
 
 repositories {
@@ -49,29 +49,7 @@ dependencies {
 	compile 'enigma-asm:enigma:0.12.0.+:lib'
 }
 
-publishing {
-	publications {
-		maven(MavenPublication) {
-			groupId 'weave-asm'
-			artifactId project.archivesBaseName
-			version project.version
-
-			from components.java
-		}
-	}
-	repositories {
-		maven {
-			url "http://mavenupload.modmuss50.me/"
-			if (project.hasProperty('mavenPass')) {
-				credentials {
-					username 'buildslave'
-					password project.getProperty('mavenPass')
-				}
-			}
-		}
-	}
-}
-
+apply from: 'https://github.com/FabricMC/fabric-docs/raw/master/gradle/maven.gradle'
 apply from: 'https://github.com/FabricMC/fabric-docs/raw/master/gradle/license.gradle'
 
 jar {
