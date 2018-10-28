@@ -115,12 +115,18 @@ public class CommandTinyify extends Command {
         System.out.println("Writing Tiny mappings...");
         Writer writer = Files.newWriter(outf, Charsets.UTF_8);
         write(writer, new String[]{"v1", nameObf, nameDeobf});
-        for (String s : mappings.getAllObfClassNames()) {
+
+        mappings.getAllObfClassNames().stream().sorted().forEach((s) -> {
             ClassMapping mapping = mappings.getClassByObf(s);
             if (mapping != null) {
-                writeClass(writer, "", mapping);
+                try {
+                    writeClass(writer, "", mapping);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        }
+        });
+
         writer.close();
     }
 }

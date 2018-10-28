@@ -17,6 +17,7 @@
 package net.fabricmc.weave.util;
 
 import cuchaz.enigma.analysis.JarIndex;
+import cuchaz.enigma.bytecode.AccessFlags;
 import cuchaz.enigma.mapping.MethodDescriptor;
 import cuchaz.enigma.mapping.TypeDescriptor;
 import cuchaz.enigma.mapping.entry.*;
@@ -25,6 +26,7 @@ import net.fabricmc.weave.CommandTinyify;
 import net.fabricmc.weave.Main;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class EnigmaUtils {
@@ -43,16 +45,12 @@ public class EnigmaUtils {
     }
 
     public static boolean isMethodProvider(JarIndex jarIndex, ClassEntry classObfEntry, MethodEntry methodEntry) {
-        // TODO: Add method in Enigma to make this faster
-        for (MethodDefEntry entry : jarIndex.getObfBehaviorEntries(classObfEntry)) {
-            if (entry.equals(methodEntry)) {
-                if (entry.getAccess().isPrivate() || entry.getAccess().isStatic()) {
-                    return true;
-                }
-            }
+        AccessFlags flags = jarIndex.getAccessFlags(methodEntry);
+        if (flags.isPrivate() || flags.isStatic()) {
+            return true;
         }
 
-        Set<ClassEntry> classEntries = new HashSet<>();
+        Set<ClassEntry> classEntries = new LinkedHashSet<>();
         addAllPotentialAncestors(jarIndex, classEntries, classObfEntry);
 
         for (ClassEntry parentEntry : classEntries) {
