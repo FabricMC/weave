@@ -16,17 +16,14 @@
 
 package net.fabricmc.weave.util;
 
-import cuchaz.enigma.analysis.Access;
 import cuchaz.enigma.analysis.JarIndex;
 import cuchaz.enigma.mapping.MethodDescriptor;
 import cuchaz.enigma.mapping.TypeDescriptor;
 import cuchaz.enigma.mapping.entry.*;
 import net.fabricmc.weave.CommandFindMappingErrors;
-import net.fabricmc.weave.CommandIntermediary;
 import net.fabricmc.weave.CommandTinyify;
 import net.fabricmc.weave.Main;
 
-import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -126,7 +123,6 @@ public class EnigmaUtils {
 
     public static void addEnigmaCommands() {
         Main.addCommand(new CommandTinyify());
-        Main.addCommand(new CommandIntermediary());
         Main.addCommand(new CommandFindMappingErrors());
     }
 }
