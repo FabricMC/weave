@@ -30,8 +30,6 @@ public class Main {
     }
 
     static {
-        addCommand(new CommandMergeMinecraft());
-
         boolean ENIGMA_PRESENT = true;
         try {
             Class.forName("cuchaz.enigma.mapping.entry.Entry");
