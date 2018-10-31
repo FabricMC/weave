@@ -31,7 +31,6 @@ public class Main {
 
     static {
         addCommand(new CommandMergeMinecraft());
-        addCommand(new CommandTinyMerge());
 
         boolean ENIGMA_PRESENT = true;
         try {

@@ -20,6 +20,7 @@ import cuchaz.enigma.Deobfuscator;
 import cuchaz.enigma.analysis.Access;
 import cuchaz.enigma.analysis.EntryReference;
 import cuchaz.enigma.analysis.JarIndex;
+import cuchaz.enigma.bytecode.AccessFlags;
 import cuchaz.enigma.mapping.Mappings;
 import cuchaz.enigma.mapping.MappingsEnigmaReader;
 import cuchaz.enigma.mapping.entry.ClassEntry;
@@ -56,14 +57,14 @@ public class CommandFindMappingErrors extends Command {
         errorStrings.get(error).add(cause);
     }
 
-    private boolean isRefValid(Access entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
+    private boolean isRefValid(AccessFlags entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
         EntryReference refDeobf = deobfuscator.deobfuscateReference(ref);
         String packageCtx = refDeobf.context.getOwnerClassEntry().getPackageName();
         String packageEntry = refDeobf.entry.getOwnerClassEntry().getPackageName();
         boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
         if (samePackage) {
             return true;
-        } else if (entryAcc == Access.PROTECTED) {
+        } else if (entryAcc.isProtected()) {
             // TODO: Is this valid?
             for (ClassEntry ctx : ref.context.getOwnerClassEntry().getClassChain()) {
                 ClassEntry c = ctx;
@@ -94,8 +95,8 @@ public class CommandFindMappingErrors extends Command {
         SortedMap<String, Set<String>> errorStrings = new TreeMap<>();
 
         for (FieldEntry entry : idx.getObfFieldEntries()) {
-            Access entryAcc = idx.getAccess(entry);
-            if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
+            AccessFlags entryAcc = idx.getAccessFlags(entry);
+            if (!entryAcc.isPublic() && !entryAcc.isPrivate()) {
                 for (EntryReference<FieldEntry, MethodDefEntry> ref : idx.getFieldReferences(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
@@ -108,8 +109,8 @@ public class CommandFindMappingErrors extends Command {
         }
 
         for (MethodEntry entry : idx.getObfBehaviorEntries()) {
-            Access entryAcc = idx.getAccess(entry);
-            if (entryAcc != Access.PUBLIC && entryAcc != Access.PRIVATE) {
+            AccessFlags entryAcc = idx.getAccessFlags(entry);
+            if (!entryAcc.isPublic() && !entryAcc.isPrivate()) {
                 for (EntryReference<MethodEntry, MethodDefEntry> ref : idx.getMethodsReferencing(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
