@@ -94,8 +94,8 @@ public class CommandTinyify extends Command {
         File injf = new File(args[0]);
         File inf = new File(args[1]);
         File outf = new File(args[2]);
-        String nameObf = args.length > 3 ? args[3] : "mojang";
-        String nameDeobf = args.length > 4 ? args[4] : "pomf";
+        String nameObf = args.length > 3 ? args[3] : "official";
+        String nameDeobf = args.length > 4 ? args[4] : "named";
 
         if (!injf.exists() || !injf.isFile()) {
             throw new FileNotFoundException("Input JAR could not be found!");
