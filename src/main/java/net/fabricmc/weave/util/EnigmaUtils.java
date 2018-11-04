@@ -23,6 +23,7 @@ import cuchaz.enigma.mapping.TypeDescriptor;
 import cuchaz.enigma.mapping.entry.*;
 import net.fabricmc.weave.CommandFindMappingErrors;
 import net.fabricmc.weave.CommandTinyify;
+import net.fabricmc.weave.CommandUpdate0121;
 import net.fabricmc.weave.Main;
 
 import java.util.HashSet;
@@ -120,6 +121,7 @@ public class EnigmaUtils {
     }
 
     public static void addEnigmaCommands() {
+        Main.addCommand(new CommandUpdate0121());
         Main.addCommand(new CommandTinyify());
         Main.addCommand(new CommandFindMappingErrors());
     }
