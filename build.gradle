@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-	compile 'com.google.guava:guava:27.0-jre'
+	compile 'com.google.guava:guava:27.0.1-jre'
 	compile 'org.ow2.asm:asm:7.0'
 	compile 'org.ow2.asm:asm-commons:7.0'
 	compile 'org.ow2.asm:asm-tree:7.0'
