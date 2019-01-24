@@ -16,28 +16,38 @@
 
 package net.fabricmc.weave;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import cuchaz.enigma.analysis.JarIndex;
+import com.google.common.collect.Lists;
+import cuchaz.enigma.ProgressListener;
 import cuchaz.enigma.analysis.ParsedJar;
-import cuchaz.enigma.mapping.ClassMapping;
-import cuchaz.enigma.mapping.FieldMapping;
-import cuchaz.enigma.mapping.Mappings;
-import cuchaz.enigma.mapping.MappingsEnigmaReader;
-import cuchaz.enigma.mapping.MethodMapping;
-import cuchaz.enigma.mapping.entry.ReferencedEntryPool;
+import cuchaz.enigma.analysis.index.JarIndex;
+import cuchaz.enigma.translation.MappingTranslator;
+import cuchaz.enigma.translation.Translator;
+import cuchaz.enigma.translation.mapping.EntryMapping;
+import cuchaz.enigma.translation.mapping.MappingDelta;
+import cuchaz.enigma.translation.mapping.MappingsChecker;
+import cuchaz.enigma.translation.mapping.VoidEntryResolver;
+import cuchaz.enigma.translation.mapping.serde.MappingFormat;
+import cuchaz.enigma.translation.mapping.serde.MappingsWriter;
+import cuchaz.enigma.translation.mapping.tree.EntryTree;
+import cuchaz.enigma.translation.mapping.tree.EntryTreeNode;
+import cuchaz.enigma.translation.representation.entry.ClassEntry;
+import cuchaz.enigma.translation.representation.entry.Entry;
+import cuchaz.enigma.translation.representation.entry.FieldEntry;
+import cuchaz.enigma.translation.representation.entry.MethodEntry;
 import net.fabricmc.weave.util.EnigmaUtils;
 import net.fabricmc.weave.util.Utils;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.jar.JarFile;
 
 public class CommandTinyify extends Command {
-    private JarIndex index;
-
     public CommandTinyify() {
         super("tinyify");
     }
@@ -50,43 +60,6 @@ public class CommandTinyify extends Command {
     @Override
     public boolean isArgumentCountValid(int count) {
         return count >= 3 && count <= 5;
-    }
-
-    private void write(Writer writer, String[] data) throws IOException {
-        writer.write(Utils.TAB_JOINER.join(data) + "\n");
-    }
-
-    private void writeData(Writer writer, ClassMapping mapping) throws IOException {
-        for (FieldMapping fieldMapping : mapping.fields()) {
-            if (fieldMapping.getDeobfName() != null
-                    && !fieldMapping.getObfName().equals(fieldMapping.getDeobfName())) {
-                String[] data = EnigmaUtils.serializeEntry(fieldMapping.getObfEntry(mapping.getObfEntry()), true, fieldMapping.getDeobfName());
-                write(writer, data);
-            }
-        }
-
-        for (MethodMapping methodMapping : mapping.methods()) {
-            if (methodMapping.getDeobfName() != null
-                    && !methodMapping.getObfName().equals(methodMapping.getDeobfName())
-                    && EnigmaUtils.isMethodProvider(index, mapping.getObfEntry(), methodMapping.getObfEntry(mapping.getObfEntry()))) {
-                String[] data = EnigmaUtils.serializeEntry(methodMapping.getObfEntry(mapping.getObfEntry()), true, methodMapping.getDeobfName());
-                write(writer, data);
-            }
-        }
-    }
-
-    private void writeClass(Writer writer, String prefix, ClassMapping mapping) throws IOException {
-        String obfClassName = Utils.NONE_PREFIX_REMOVER.map(mapping.getObfFullName());
-        String deobfClassName = mapping.getDeobfName() == null ? obfClassName : Utils.NONE_PREFIX_REMOVER.map(prefix + (mapping.getDeobfName()));
-        if (!deobfClassName.equals(obfClassName)) {
-            write(writer, new String[]{"CLASS", obfClassName, deobfClassName});
-        }
-
-        writeData(writer, mapping);
-
-        for (ClassMapping innerMapping : mapping.innerClasses()) {
-            writeClass(writer, prefix + deobfClassName + "$", innerMapping);
-        }
     }
 
     @Override
@@ -106,27 +79,91 @@ public class CommandTinyify extends Command {
         }
 
         System.out.println("Reading JAR file...");
-        index = new JarIndex(new ReferencedEntryPool());
-        index.indexJar(new ParsedJar(new JarFile(injf)), true);
+
+        JarIndex index = JarIndex.empty();
+        index.indexJar(new ParsedJar(new JarFile(injf)), s -> {});
 
         System.out.println("Reading Enigma mappings...");
-        Mappings mappings = (new MappingsEnigmaReader()).read(inf);
+        MappingFormat format = inf.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
+        EntryTree<EntryMapping> mappings = format.read(inf.toPath());
+
+        MappingsChecker checker = new MappingsChecker(index, mappings);
+        checker.dropBrokenMappings();
 
         System.out.println("Writing Tiny mappings...");
-        Writer writer = Files.newWriter(outf, Charsets.UTF_8);
-        write(writer, new String[]{"v1", nameObf, nameDeobf});
 
-        mappings.getAllObfClassNames().stream().sorted().forEach((s) -> {
-            ClassMapping mapping = mappings.getClassByObf(s);
-            if (mapping != null) {
-                try {
-                    writeClass(writer, "", mapping);
-                } catch (IOException e) {
-                    e.printStackTrace();
+        MappingsWriter writer = new TinyMappingsWriter(nameObf, nameDeobf);
+        writer.write(mappings, MappingDelta.added(mappings), outf.toPath(), ProgressListener.VOID);
+    }
+
+    private static class TinyMappingsWriter implements MappingsWriter {
+        private static final String VERSION_CONSTANT = "v1";
+
+        private final String nameObf;
+        private final String nameDeobf;
+
+        private TinyMappingsWriter(String nameObf, String nameDeobf) {
+            this.nameObf = nameObf;
+            this.nameDeobf = nameDeobf;
+        }
+
+        @Override
+        public void write(EntryTree<EntryMapping> mappings, MappingDelta delta, Path path, ProgressListener progress) {
+            try {
+                Files.deleteIfExists(path);
+                Files.createFile(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+                writeLine(writer, new String[] { VERSION_CONSTANT, nameObf, nameDeobf });
+
+                Lists.newArrayList(mappings).stream().sorted().forEach(node -> {
+                    Entry<?> entry = node.getEntry();
+                    writeEntry(writer, mappings, entry);
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void writeEntry(Writer writer, EntryTree<EntryMapping> mappings, Entry<?> entry) {
+            EntryTreeNode<EntryMapping> node = mappings.findNode(entry);
+            if (node == null) {
+                return;
+            }
+
+            Translator translator = new MappingTranslator(mappings, VoidEntryResolver.INSTANCE);
+
+            EntryMapping mapping = mappings.get(entry);
+            if (mapping != null && !entry.getName().equals(mapping.getTargetName())) {
+                if (entry instanceof ClassEntry) {
+                    writeClass(writer, (ClassEntry) entry, translator);
+                } else if (entry instanceof FieldEntry) {
+                    writeLine(writer, EnigmaUtils.serializeEntry(entry, true, mapping.getTargetName()));
+                } else if (entry instanceof MethodEntry) {
+                    writeLine(writer, EnigmaUtils.serializeEntry(entry, true, mapping.getTargetName()));
                 }
             }
-        });
 
-        writer.close();
+            node.getChildren().stream().sorted().forEach(child -> writeEntry(writer, mappings, child));
+        }
+
+        private void writeClass(Writer writer, ClassEntry entry, Translator translator) {
+            ClassEntry translatedEntry = translator.translate(entry);
+
+            String obfClassName = Utils.NONE_PREFIX_REMOVER.map(entry.getFullName());
+            String deobfClassName = Utils.NONE_PREFIX_REMOVER.map(translatedEntry.getFullName());
+            writeLine(writer, new String[] { "CLASS", obfClassName, deobfClassName });
+        }
+
+        private void writeLine(Writer writer, String[] data) {
+            try {
+                writer.write(Utils.TAB_JOINER.join(data) + "\n");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

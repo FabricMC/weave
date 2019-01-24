@@ -17,18 +17,24 @@
 package net.fabricmc.weave;
 
 import cuchaz.enigma.Deobfuscator;
-import cuchaz.enigma.analysis.Access;
 import cuchaz.enigma.analysis.EntryReference;
-import cuchaz.enigma.analysis.JarIndex;
-import cuchaz.enigma.bytecode.AccessFlags;
-import cuchaz.enigma.mapping.Mappings;
-import cuchaz.enigma.mapping.MappingsEnigmaReader;
-import cuchaz.enigma.mapping.entry.ClassEntry;
-import cuchaz.enigma.mapping.entry.FieldEntry;
-import cuchaz.enigma.mapping.entry.MethodDefEntry;
-import cuchaz.enigma.mapping.entry.MethodEntry;
+import cuchaz.enigma.analysis.index.EntryIndex;
+import cuchaz.enigma.analysis.index.InheritanceIndex;
+import cuchaz.enigma.analysis.index.JarIndex;
+import cuchaz.enigma.analysis.index.ReferenceIndex;
+import cuchaz.enigma.translation.mapping.EntryMapping;
+import cuchaz.enigma.translation.mapping.EntryRemapper;
+import cuchaz.enigma.translation.mapping.serde.MappingFormat;
+import cuchaz.enigma.translation.mapping.tree.EntryTree;
+import cuchaz.enigma.translation.representation.AccessFlags;
+import cuchaz.enigma.translation.representation.entry.ClassEntry;
+import cuchaz.enigma.translation.representation.entry.FieldEntry;
+import cuchaz.enigma.translation.representation.entry.MethodDefEntry;
+import cuchaz.enigma.translation.representation.entry.MethodEntry;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
@@ -58,26 +64,37 @@ public class CommandFindMappingErrors extends Command {
     }
 
     private boolean isRefValid(AccessFlags entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
-        EntryReference refDeobf = deobfuscator.deobfuscateReference(ref);
-        String packageCtx = refDeobf.context.getOwnerClassEntry().getPackageName();
-        String packageEntry = refDeobf.entry.getOwnerClassEntry().getPackageName();
+        EntryReference refDeobf = deobfuscator.getMapper().deobfuscate(ref);
+        String packageCtx = refDeobf.context.getContainingClass().getPackageName();
+        String packageEntry = refDeobf.entry.getContainingClass().getPackageName();
         boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
         if (samePackage) {
             return true;
         } else if (entryAcc.isProtected()) {
             // TODO: Is this valid?
-            for (ClassEntry ctx : ref.context.getOwnerClassEntry().getClassChain()) {
-                ClassEntry c = ctx;
-                while (c != null) {
-                    if (c.equals(ref.entry.getOwnerClassEntry())) {
-                        return true;
-                    }
-                    c = deobfuscator.getJarIndex().getTranslationIndex().getSuperclass(c);
+            InheritanceIndex inheritanceIndex = deobfuscator.getJarIndex().getInheritanceIndex();
+
+            for (ClassEntry outerClass : getOuterClasses(ref.context.getContainingClass())) {
+                Set<ClassEntry> callerAncestors = inheritanceIndex.getAncestors(outerClass);
+                if (callerAncestors.contains(ref.entry.getContainingClass())) {
+                    return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private Collection<ClassEntry> getOuterClasses(ClassEntry entry) {
+        Collection<ClassEntry> outerClasses = new ArrayList<>();
+
+        ClassEntry currentEntry = entry;
+        while (currentEntry != null) {
+            outerClasses.add(currentEntry);
+            currentEntry = currentEntry.getOuterClass();
+        }
+
+        return outerClasses;
     }
 
     @Override
@@ -88,35 +105,42 @@ public class CommandFindMappingErrors extends Command {
         System.out.println("Reading JAR...");
         Deobfuscator deobfuscator = new Deobfuscator(new JarFile(fileJarIn));
         System.out.println("Reading mappings...");
-        Mappings mappings = (new MappingsEnigmaReader()).read(fileMappings);
+
+        MappingFormat format = fileMappings.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
+        EntryTree<EntryMapping> mappings = format.read(fileMappings.toPath());
         deobfuscator.setMappings(mappings);
 
         JarIndex idx = deobfuscator.getJarIndex();
+        EntryIndex entryIndex = idx.getEntryIndex();
+        ReferenceIndex referenceIndex = idx.getReferenceIndex();
+
+        EntryRemapper mapper = deobfuscator.getMapper();
+
         SortedMap<String, Set<String>> errorStrings = new TreeMap<>();
 
-        for (FieldEntry entry : idx.getObfFieldEntries()) {
-            AccessFlags entryAcc = idx.getAccessFlags(entry);
+        for (FieldEntry entry : entryIndex.getFields()) {
+            AccessFlags entryAcc = entryIndex.getFieldAccess(entry);
             if (!entryAcc.isPublic() && !entryAcc.isPrivate()) {
-                for (EntryReference<FieldEntry, MethodDefEntry> ref : idx.getFieldReferences(entry)) {
+                for (EntryReference<FieldEntry, MethodDefEntry> ref : referenceIndex.getReferencesToField(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
                     if (!valid) {
-                        EntryReference<FieldEntry, MethodDefEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
-                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getOwnerClassEntry() + " and " + refDeobf.entry.getOwnerClassEntry(), "field " + refDeobf.entry.getName());
+                        EntryReference<FieldEntry, MethodDefEntry> refDeobf = mapper.deobfuscate(ref);
+                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getContainingClass() + " and " + refDeobf.entry.getContainingClass(), "field " + refDeobf.entry.getName());
                     }
                 }
             }
         }
 
-        for (MethodEntry entry : idx.getObfBehaviorEntries()) {
-            AccessFlags entryAcc = idx.getAccessFlags(entry);
+        for (MethodEntry entry : entryIndex.getMethods()) {
+            AccessFlags entryAcc = entryIndex.getMethodAccess(entry);
             if (!entryAcc.isPublic() && !entryAcc.isPrivate()) {
-                for (EntryReference<MethodEntry, MethodDefEntry> ref : idx.getMethodsReferencing(entry)) {
+                for (EntryReference<MethodEntry, MethodDefEntry> ref : referenceIndex.getReferencesToMethod(entry)) {
                     boolean valid = isRefValid(entryAcc, ref, deobfuscator);
 
                     if (!valid) {
-                        EntryReference<MethodEntry, MethodDefEntry> refDeobf = deobfuscator.deobfuscateReference(ref);
-                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getOwnerClassEntry() + " and " + refDeobf.entry.getOwnerClassEntry(), "method " + refDeobf.entry.getName());
+                        EntryReference<MethodEntry, MethodDefEntry> refDeobf = mapper.deobfuscate(ref);
+                        addError(errorStrings, "ERROR: Must be in one package: " + refDeobf.context.getContainingClass() + " and " + refDeobf.entry.getContainingClass(), "method " + refDeobf.entry.getName());
                     }
                 }
             }
