@@ -18,7 +18,6 @@ package net.fabricmc.weave;
 
 import net.fabricmc.weave.util.EnigmaUtils;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -32,7 +31,7 @@ public class Main {
     static {
         boolean ENIGMA_PRESENT = true;
         try {
-            Class.forName("cuchaz.enigma.mapping.entry.Entry");
+            Class.forName("cuchaz.enigma.translation.representation.entry.Entry");
         } catch (ClassNotFoundException e) {
             ENIGMA_PRESENT = false;
         }

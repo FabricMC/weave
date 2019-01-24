@@ -16,6 +16,8 @@
 
 package net.fabricmc.weave.util;
 
+import cuchaz.enigma.translation.representation.MethodDescriptor;
+import cuchaz.enigma.translation.representation.TypeDescriptor;
 import cuchaz.enigma.translation.representation.entry.ClassEntry;
 import cuchaz.enigma.translation.representation.entry.Entry;
 import cuchaz.enigma.translation.representation.entry.FieldEntry;
@@ -65,6 +67,20 @@ public class EnigmaUtils {
         }
 
         return data;
+    }
+
+    public static Entry<?> deserializeEntry(String[] data) {
+        if (data.length > 0) {
+            if (data[0].equals("FIELD") && data.length >= 4) {
+                return new FieldEntry(new ClassEntry(data[1]), data[3], new TypeDescriptor(data[2]));
+            } else if (data[0].equals("METHOD") && data.length >= 4) {
+                return new MethodEntry(new ClassEntry(data[1]), data[3], new MethodDescriptor(data[2]));
+            } else if (data[0].equals("CLASS") && data.length >= 2) {
+                return new ClassEntry(data[1]);
+            }
+        }
+
+        return null;
     }
 
     public static void addEnigmaCommands() {

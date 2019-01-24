@@ -119,10 +119,9 @@ public class CommandTinyify extends Command {
             try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
                 writeLine(writer, new String[] { VERSION_CONSTANT, nameObf, nameDeobf });
 
-                Lists.newArrayList(mappings).stream().sorted().forEach(node -> {
-                    Entry<?> entry = node.getEntry();
-                    writeEntry(writer, mappings, entry);
-                });
+                Lists.newArrayList(mappings).stream()
+                        .map(EntryTreeNode::getEntry).sorted()
+                        .forEach(entry -> writeEntry(writer, mappings, entry));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -147,7 +146,21 @@ public class CommandTinyify extends Command {
                 }
             }
 
-            node.getChildren().stream().sorted().forEach(child -> writeEntry(writer, mappings, child));
+            writeChildren(writer, mappings, node);
+        }
+
+        private void writeChildren(Writer writer, EntryTree<EntryMapping> mappings, EntryTreeNode<EntryMapping> node) {
+            node.getChildren().stream()
+                    .filter(e -> e instanceof FieldEntry).sorted()
+                    .forEach(child -> writeEntry(writer, mappings, child));
+
+            node.getChildren().stream()
+                    .filter(e -> e instanceof MethodEntry).sorted()
+                    .forEach(child -> writeEntry(writer, mappings, child));
+
+            node.getChildren().stream()
+                    .filter(e -> e instanceof ClassEntry).sorted()
+                    .forEach(child -> writeEntry(writer, mappings, child));
         }
 
         private void writeClass(Writer writer, ClassEntry entry, Translator translator) {
