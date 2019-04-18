@@ -45,6 +45,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.jar.JarFile;
 
 public class CommandTinyify extends Command {
@@ -85,10 +86,10 @@ public class CommandTinyify extends Command {
 
         System.out.println("Reading Enigma mappings...");
         MappingFormat format = inf.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
-        EntryTree<EntryMapping> mappings = format.read(inf.toPath());
+        EntryTree<EntryMapping> mappings = format.read(inf.toPath(), ProgressListener.VOID);
 
         MappingsChecker checker = new MappingsChecker(index, mappings);
-        checker.dropBrokenMappings();
+        checker.dropBrokenMappings(ProgressListener.VOID);
 
         System.out.println("Writing Tiny mappings...");
 
@@ -108,7 +109,7 @@ public class CommandTinyify extends Command {
         }
 
         @Override
-        public void write(EntryTree<EntryMapping> mappings, MappingDelta delta, Path path, ProgressListener progress) {
+        public void write(EntryTree<EntryMapping> mappings, MappingDelta<EntryMapping> delta, Path path, ProgressListener progress) {
             try {
                 Files.deleteIfExists(path);
                 Files.createFile(path);
@@ -120,7 +121,7 @@ public class CommandTinyify extends Command {
                 writeLine(writer, new String[] { VERSION_CONSTANT, nameObf, nameDeobf });
 
                 Lists.newArrayList(mappings).stream()
-                        .map(EntryTreeNode::getEntry).sorted()
+                        .map(EntryTreeNode::getEntry).sorted(Comparator.comparing(Object::toString))
                         .forEach(entry -> writeEntry(writer, mappings, entry));
             } catch (IOException e) {
                 e.printStackTrace();

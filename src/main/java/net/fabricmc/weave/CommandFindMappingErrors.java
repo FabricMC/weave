@@ -17,6 +17,7 @@
 package net.fabricmc.weave;
 
 import cuchaz.enigma.Deobfuscator;
+import cuchaz.enigma.ProgressListener;
 import cuchaz.enigma.analysis.EntryReference;
 import cuchaz.enigma.analysis.index.EntryIndex;
 import cuchaz.enigma.analysis.index.InheritanceIndex;
@@ -107,7 +108,7 @@ public class CommandFindMappingErrors extends Command {
         System.out.println("Reading mappings...");
 
         MappingFormat format = fileMappings.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
-        EntryTree<EntryMapping> mappings = format.read(fileMappings.toPath());
+        EntryTree<EntryMapping> mappings = format.read(fileMappings.toPath(), ProgressListener.VOID);
         deobfuscator.setMappings(mappings);
 
         JarIndex idx = deobfuscator.getJarIndex();
