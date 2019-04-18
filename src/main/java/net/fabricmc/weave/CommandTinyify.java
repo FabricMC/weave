@@ -46,6 +46,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarFile;
 
 public class CommandTinyify extends Command {
@@ -100,6 +102,8 @@ public class CommandTinyify extends Command {
     private static class TinyMappingsWriter implements MappingsWriter {
         private static final String VERSION_CONSTANT = "v1";
 
+        // HACK: as of enigma 0.13.1, some fields seem to appear duplicated?
+        private final Set<String> writtenLines = new HashSet<>();
         private final String nameObf;
         private final String nameDeobf;
 
@@ -174,7 +178,10 @@ public class CommandTinyify extends Command {
 
         private void writeLine(Writer writer, String[] data) {
             try {
-                writer.write(Utils.TAB_JOINER.join(data) + "\n");
+                String line = Utils.TAB_JOINER.join(data) + "\n";
+                if (writtenLines.add(line)) {
+                    writer.write(line);
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
