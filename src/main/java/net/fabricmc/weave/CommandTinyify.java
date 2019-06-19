@@ -18,7 +18,7 @@ package net.fabricmc.weave;
 
 import com.google.common.collect.Lists;
 import cuchaz.enigma.ProgressListener;
-import cuchaz.enigma.analysis.ParsedJar;
+import cuchaz.enigma.analysis.ClassCache;
 import cuchaz.enigma.analysis.index.JarIndex;
 import cuchaz.enigma.translation.MappingTranslator;
 import cuchaz.enigma.translation.Translator;
@@ -48,7 +48,6 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.jar.JarFile;
 
 public class CommandTinyify extends Command {
     public CommandTinyify() {
@@ -84,19 +83,19 @@ public class CommandTinyify extends Command {
         System.out.println("Reading JAR file...");
 
         JarIndex index = JarIndex.empty();
-        index.indexJar(new ParsedJar(new JarFile(injf)), s -> {});
+        index.indexJar(ClassCache.of(injf.toPath()), ProgressListener.none());
 
         System.out.println("Reading Enigma mappings...");
         MappingFormat format = inf.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
-        EntryTree<EntryMapping> mappings = format.read(inf.toPath(), ProgressListener.VOID);
+        EntryTree<EntryMapping> mappings = format.read(inf.toPath(), ProgressListener.none());
 
         MappingsChecker checker = new MappingsChecker(index, mappings);
-        checker.dropBrokenMappings(ProgressListener.VOID);
+        checker.dropBrokenMappings(ProgressListener.none());
 
         System.out.println("Writing Tiny mappings...");
 
         MappingsWriter writer = new TinyMappingsWriter(nameObf, nameDeobf);
-        writer.write(mappings, MappingDelta.added(mappings), outf.toPath(), ProgressListener.VOID);
+        writer.write(mappings, MappingDelta.added(mappings), outf.toPath(), ProgressListener.none());
     }
 
     private static class TinyMappingsWriter implements MappingsWriter {

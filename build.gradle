@@ -45,7 +45,7 @@ dependencies {
 	compile 'org.ow2.asm:asm-tree:7.1'
 	compile 'org.ow2.asm:asm-util:7.1'
 
-	compile('cuchaz:enigma:0.13.1.103:lib') {
+	compile('cuchaz:enigma:0.14.0.120:lib') {
 		exclude group: 'org.ow2.asm'		
 	}
 }

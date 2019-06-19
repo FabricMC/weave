@@ -16,7 +16,8 @@
 
 package net.fabricmc.weave;
 
-import cuchaz.enigma.Deobfuscator;
+import cuchaz.enigma.Enigma;
+import cuchaz.enigma.EnigmaProject;
 import cuchaz.enigma.ProgressListener;
 import cuchaz.enigma.analysis.EntryReference;
 import cuchaz.enigma.analysis.index.EntryIndex;
@@ -40,7 +41,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.jar.JarFile;
 
 public class CommandFindMappingErrors extends Command {
     public CommandFindMappingErrors() {
@@ -64,8 +64,8 @@ public class CommandFindMappingErrors extends Command {
         errorStrings.get(error).add(cause);
     }
 
-    private boolean isRefValid(AccessFlags entryAcc, EntryReference ref, Deobfuscator deobfuscator) {
-        EntryReference refDeobf = deobfuscator.getMapper().deobfuscate(ref);
+    private boolean isRefValid(AccessFlags entryAcc, EntryReference ref, EnigmaProject enigmaProject) {
+        EntryReference refDeobf = enigmaProject.getMapper().deobfuscate(ref);
         String packageCtx = refDeobf.context.getContainingClass().getPackageName();
         String packageEntry = refDeobf.entry.getContainingClass().getPackageName();
         boolean samePackage = (packageCtx == null && packageEntry == null) || (packageCtx != null && packageCtx.equals(packageEntry));
@@ -73,7 +73,7 @@ public class CommandFindMappingErrors extends Command {
             return true;
         } else if (entryAcc.isProtected()) {
             // TODO: Is this valid?
-            InheritanceIndex inheritanceIndex = deobfuscator.getJarIndex().getInheritanceIndex();
+            InheritanceIndex inheritanceIndex = enigmaProject.getJarIndex().getInheritanceIndex();
 
             for (ClassEntry outerClass : getOuterClasses(ref.context.getContainingClass())) {
                 Set<ClassEntry> callerAncestors = inheritanceIndex.getAncestors(outerClass);
@@ -104,11 +104,11 @@ public class CommandFindMappingErrors extends Command {
         File fileMappings = new File(args[1]);
 
         System.out.println("Reading JAR...");
-        Deobfuscator deobfuscator = new Deobfuscator(new JarFile(fileJarIn));
+	    EnigmaProject deobfuscator = Enigma.create().openJar(fileJarIn.toPath(), ProgressListener.none());
         System.out.println("Reading mappings...");
 
         MappingFormat format = fileMappings.isDirectory() ? MappingFormat.ENIGMA_DIRECTORY : MappingFormat.ENIGMA_FILE;
-        EntryTree<EntryMapping> mappings = format.read(fileMappings.toPath(), ProgressListener.VOID);
+        EntryTree<EntryMapping> mappings = format.read(fileMappings.toPath(), ProgressListener.none());
         deobfuscator.setMappings(mappings);
 
         JarIndex idx = deobfuscator.getJarIndex();
