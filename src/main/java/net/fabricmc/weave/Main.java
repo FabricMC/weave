@@ -16,8 +16,6 @@
 
 package net.fabricmc.weave;
 
-import net.fabricmc.weave.util.EnigmaUtils;
-
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -29,16 +27,11 @@ public class Main {
     }
 
     static {
-        boolean ENIGMA_PRESENT = true;
-        try {
-            Class.forName("cuchaz.enigma.translation.representation.entry.Entry");
-        } catch (ClassNotFoundException e) {
-            ENIGMA_PRESENT = false;
-        }
-
-        if (ENIGMA_PRESENT) {
-            EnigmaUtils.addEnigmaCommands();
-        }
+        addCommand(new CommandTinyify());
+        addCommand(new CommandFindMappingErrors());
+        addCommand(new CommandConvert());
+        addCommand(new CommandInvert());
+        addCommand(new CommandCompose());
     }
 
     public static void error(String message) {
